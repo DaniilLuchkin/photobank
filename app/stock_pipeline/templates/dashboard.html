@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% set title = "Dashboard" %}{% block content %}
+<div class="page-heading"><div><h1>Stock Pipeline</h1><p class="muted">Drop files into <code>/home/ubuntu/Stock/inbox</code>.</p></div><form method="post" action="/scan"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button>Scan now</button></form></div>
+<section class="cards">
+  <a class="card" href="/assets"><span>All assets</span><strong>{{ stats.total }}</strong></a>
+  <a class="card" href="/assets?state=READY"><span>Ready</span><strong>{{ stats.ready }}</strong></a>
+  <a class="card" href="/assets?state=NEEDS_REVIEW"><span>Needs review</span><strong>{{ stats.needs_review }}</strong></a>
+  <a class="card" href="/assets?state=APPROVED"><span>Approved</span><strong>{{ stats.approved }}</strong></a>
+  <a class="card" href="/assets?state=FAILED"><span>Failed</span><strong>{{ stats.failed }}</strong></a>
+</section>
+<section class="panel"><h2>Providers</h2><table><tr><th>Provider</th><th>Mode</th><th>Status</th><th>Last success</th></tr>{% for provider in providers %}<tr><td>{{ provider.name }}</td><td>{{ provider.mode }}</td><td><span class="dot {% if provider.enabled %}ok{% endif %}"></span>{{ "enabled" if provider.enabled else "disabled" }}</td><td>{{ provider.last_success_at or "—" }}</td></tr>{% endfor %}</table></section>
+<section class="panel"><h2>Pipeline</h2><p>Inbox: <b>{{ stats.inbox }}</b> · Processing: <b>{{ stats.processing }}</b> · Manual/review: <b>{{ stats.needs_review }}</b></p><p class="muted">Default daily limit: {{ config.max_assets_per_day if config else 50 }} assets.</p></section>
+{% endblock %}

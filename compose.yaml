@@ -1,0 +1,52 @@
+name: stock-pipeline
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-stock}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_DB: ${POSTGRES_DB:-stock}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-stock} -d ${POSTGRES_DB:-stock}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build: .
+    restart: unless-stopped
+    init: true
+    env_file: .env
+    command: uvicorn stock_pipeline.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "127.0.0.1:${APP_PORT:-8910}:8000"
+    volumes:
+      - ${STOCK_ROOT_HOST:-/home/ubuntu/Stock}:/data/stock
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  worker:
+    build: .
+    restart: unless-stopped
+    init: true
+    env_file: .env
+    command: python -m stock_pipeline.worker
+    volumes:
+      - ${STOCK_ROOT_HOST:-/home/ubuntu/Stock}:/data/stock
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+
